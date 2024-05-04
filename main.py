@@ -1,12 +1,15 @@
-from time import sleep
+'''displaying of text nalang need ayusin
+then next is AI'''
 
+
+from time import sleep
 import pygame
 import sys
 import random
 
 # Define colors
 WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
+ALMOND = (193, 154, 107)
 GREEN = (19, 194, 89)
 DGREEN = (13, 165, 71)
 CREAM = (242, 201, 121)
@@ -16,7 +19,17 @@ BROWN = (43, 21, 17)
 CELL_SIZE = 100
 WORLD_SIZE = 4
 PIT_PROBABILITY = 0.2
-MAX_MOVES_PER_GAME = 1000
+
+GOLD_REWARD = 1000
+DEATH_PENALTY = -1000
+ACTION_PENALTY = -1
+ARROW_PENALTY = -10
+
+# Initialize score and game state variables
+score = 0
+
+
+
 
 # Define actions
 GOFORWARD = "GOFORWARD"
@@ -47,9 +60,25 @@ gold_img = pygame.transform.scale(gold_img, (CELL_SIZE, CELL_SIZE))
 bg_img = pygame.image.load("bg.jpg")
 bg_img = pygame.transform.scale(bg_img, (400, 400))
 
+shoot_right = pygame.image.load("shoot - right.jpg")
+shoot_right = pygame.transform.scale(shoot_right, (70, 70))
+shoot_left = pygame.image.load("shoot - left.jpg")
+shoot_left = pygame.transform.scale(shoot_left, (70, 70))
+shoot_up = pygame.image.load("shoot - up.jpg")
+shoot_up = pygame.transform.scale(shoot_up, (70, 70))
+shoot_down = pygame.image.load("shoot - down.jpg")
+shoot_down = pygame.transform.scale(shoot_down, (70, 70))
+
 
 instruction_font = pygame.font.SysFont(None, 22)
-state = instruction_font.render("empty room", True, BLACK)
+state = instruction_font.render("empty room", True, BROWN)
+
+
+
+shooting_instructions_displayed = False
+wumpus_shot = False
+gold_retrieved = False
+
 
 
 # Define fonts
@@ -75,34 +104,82 @@ class Agent:
         else:
             self.bump = True
 
-    def turn_left(self):
-        if self.orientation == "RIGHT":
-            self.orientation = "UP"
-        elif self.orientation == "UP":
-            self.orientation = "LEFT"
-        elif self.orientation == "LEFT":
-            self.orientation = "DOWN"
-        elif self.orientation == "DOWN":
-            self.orientation = "RIGHT"
-
-    def turn_right(self):
-        if self.orientation == "RIGHT":
-            self.orientation = "DOWN"
-        elif self.orientation == "DOWN":
-            self.orientation = "LEFT"
-        elif self.orientation == "LEFT":
-            self.orientation = "UP"
-        elif self.orientation == "UP":
-            self.orientation = "RIGHT"
 
     def grab(self):
+        global gold_retrieved, score
         self.has_gold = True
 
-    def climb(self):
-        pass
+        if world.grid[world.agent.x][world.agent.y].has_gold:
+            world.grid[self.x][self.y].has_gold = False
+            score += GOLD_REWARD
+            gold_retrieved = True
+            print("You've found the gold! You win!")
+
 
     def shoot(self):
-        pass
+        global state_state, shooting_instructions_displayed, wumpus_shot
+
+        if self.has_arrow:
+            if pygame.key.get_pressed()[pygame.K_UP]:
+                for x in range(self.x - 1, -1, -1):
+                    if world.grid[x][self.y].has_wumpus:
+                        world.grid[x][self.y].has_wumpus = False
+                        print("You shot the Wumpus!")
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        wumpus_shot = True
+                        # Blit the shoot image onto the window
+                        agent_rect = pygame.Rect(self.y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_up, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
+                        break
+            elif pygame.key.get_pressed()[pygame.K_DOWN]:
+                for x in range(self.x + 1, WORLD_SIZE):
+                    if world.grid[x][self.y].has_wumpus:
+                        world.grid[x][self.y].has_wumpus = False
+                        print("You shot the Wumpus!")
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        wumpus_shot = True
+                        # Blit the shoot image onto the window
+                        agent_rect = pygame.Rect(self.y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_down, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
+                        break
+            elif pygame.key.get_pressed()[pygame.K_LEFT]:
+                for y in range(self.y - 1, -1, -1):
+                    if world.grid[self.x][y].has_wumpus:
+                        world.grid[self.x][y].has_wumpus = False
+                        print("You shot the Wumpus!")
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        wumpus_shot = True
+                        # Blit the shoot image onto the window
+                        agent_rect = pygame.Rect(y * CELL_SIZE, self.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_left, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
+                        break
+            elif pygame.key.get_pressed()[pygame.K_RIGHT]:
+                for y in range(self.y + 1, WORLD_SIZE):
+                    if world.grid[self.x][y].has_wumpus:
+                        world.grid[self.x][y].has_wumpus = False
+                        print("You shot the Wumpus!")
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        wumpus_shot = True
+                        # Blit the shoot image onto the window
+                        agent_rect = pygame.Rect(y * CELL_SIZE, self.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_right, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
+                        break
+
+        else:
+            print("No arrows left.")
+
 
 class WumpusWorld:
     def __init__(self):
@@ -140,40 +217,6 @@ class WumpusWorld:
             occupied_cells.add((gold_row, gold_col))  # Mark cell as occupied
             break
 
-    '''def generate_world(self):
-        occupied_cells = set()  # Keep track of occupied cells
-        occupied_cells.add((0, 3))  # Mark initial cell as occupied
-        occupied_cells.add((1, 3))  # Mark the adjacent cell as occupied
-
-        # Randomly place pits
-        num_pits = random.randint(1, 3)  # Generate a random number of pits between 1 and 3
-        for _ in range(num_pits):
-            while True:
-                row, col = random.randint(0, WORLD_SIZE - 1), random.randint(0, WORLD_SIZE - 1)
-                if (row, col) in occupied_cells or random.random() >= PIT_PROBABILITY:
-                    continue  # Skip occupied cells and cells that don't meet the pit probability
-                self.grid[row][col].has_pit = True
-                occupied_cells.add((row, col))  # Mark cell as occupied
-                break
-
-        # Randomly place wumpus
-        while True:
-            wumpus_row, wumpus_col = random.randint(0, WORLD_SIZE - 1), random.randint(0, WORLD_SIZE - 1)
-            if (wumpus_row, wumpus_col) in occupied_cells:
-                continue  # Skip occupied cells
-            self.grid[wumpus_row][wumpus_col].has_wumpus = True
-            occupied_cells.add((wumpus_row, wumpus_col))  # Mark cell as occupied
-            break
-
-        # Randomly place gold
-        while True:
-            gold_row, gold_col = random.randint(0, WORLD_SIZE - 1), random.randint(0, WORLD_SIZE - 1)
-            if (gold_row, gold_col) in occupied_cells:
-                continue  # Skip occupied cells
-            self.grid[gold_row][gold_col].has_gold = True
-            occupied_cells.add((gold_row, gold_col))  # Mark cell as occupied
-            break
-'''
 
     def draw(self):
         for row in range(WORLD_SIZE):
@@ -182,15 +225,16 @@ class WumpusWorld:
                 rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE)
                 if cell.has_pit:
                     window.blit(pit_img, rect)
-                    print(f"Cell [{row},{col}]: Pit")
+                    #print(f"Cell [{row},{col}]: Pit")
                 elif cell.has_wumpus:
                     window.blit(wumpus_img, rect)
-                    print(f"Cell [{row},{col}]: Wumpus")
+                    #print(f"Cell [{row},{col}]: Wumpus")
                 elif cell.has_gold:
                     window.blit(gold_img, rect)
-                    print(f"Cell [{row},{col}]: Gold")
+                    #print(f"Cell [{row},{col}]: Gold")
                 else:
-                    print(f"Cell [{row},{col}]: Empty")
+                    pass
+                #print(f"Cell [{row},{col}]: Empty")
 
 
 
@@ -226,9 +270,10 @@ restart_button = Button((410, 317, 230, 70), "Restart")
 # Game loop
 running = True
 while running:
-
+    print(shooting_instructions_displayed)
     #window.fill(BLACK, (0, 600, 100, 100))
     # Blit the instructions onto the surface
+
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -236,8 +281,9 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN:  # Check for a mouse button down event
             if restart_button.rect.collidepoint(event.pos):  # Check if the click was within the button's rect
                 world = WumpusWorld()  # Restart the game
+                wumpus_shot = False
                 sleep(0.1)
-        elif event.type == pygame.KEYDOWN:
+        elif event.type == pygame.KEYDOWN and shooting_instructions_displayed == False and gold_retrieved == False and wumpus_shot == False:
             if event.key == pygame.K_UP:
                 world.agent.move(-1, 0)
             elif event.key == pygame.K_DOWN:
@@ -249,7 +295,8 @@ while running:
             elif event.key == pygame.K_SPACE:
                 world.agent.grab()
             elif event.key == pygame.K_RETURN:
-                world.agent.climb()
+                shooting_instructions_displayed = True
+                print("Shooting instructions displayed")
 
 
     # Fill the backgrounda
@@ -258,9 +305,9 @@ while running:
 
     # Draw the grid lines
     for x in range(0, WINDOW_SIZE[0], CELL_SIZE):
-        pygame.draw.line(window, BLACK, (x, 0), (x, WINDOW_SIZE[1]))
+        pygame.draw.line(window, ALMOND, (x, 0), (x, WINDOW_SIZE[1]))
     for y in range(0, WINDOW_SIZE[1], CELL_SIZE):
-        pygame.draw.line(window, BLACK, (0, y), (WINDOW_SIZE[0], y))
+        pygame.draw.line(window, ALMOND, (0, y), (WINDOW_SIZE[0], y))
 
     # Draw the Wumpus World
     world.draw()
@@ -273,20 +320,22 @@ while running:
     restart_button.draw()
 
     # Display percept status
+
+
     adjacent_pit = (
-            (world.agent.x > 0 and world.grid[world.agent.x - 1][world.agent.y].has_pit) or  # Check above
-            (world.agent.y > 0 and world.grid[world.agent.x][world.agent.y - 1].has_pit) or  # Check left
-            (world.agent.x < WORLD_SIZE - 1 and world.grid[world.agent.x + 1][world.agent.y].has_pit) or  # Check below
-            (world.agent.y < WORLD_SIZE - 1 and world.grid[world.agent.x][world.agent.y + 1].has_pit)  # Check right
+        (world.agent.x > 0 and world.grid[world.agent.x - 1][world.agent.y].has_pit) or  # Check above
+        (world.agent.x < WORLD_SIZE - 1 and world.grid[world.agent.x + 1][world.agent.y].has_pit) or  # Check below
+        (world.agent.y > 0 and world.grid[world.agent.x][world.agent.y - 1].has_pit) or  # Check left
+        (world.agent.y < WORLD_SIZE - 1 and world.grid[world.agent.x][world.agent.y + 1].has_pit)  # Check right
     )
 
     adjacent_wumpus = (
-            (world.agent.y > 0 and world.grid[world.agent.x - 1][world.agent.y].has_wumpus) or  # Check above
-            (world.agent.x > 0 and world.grid[world.agent.x][world.agent.y - 1].has_wumpus) or  # Check left
-            (world.agent.y < WORLD_SIZE - 1 and world.grid[world.agent.y + 1][
-                world.agent.x].has_wumpus) or  # Check below
-            (world.agent.x < WORLD_SIZE - 1 and world.grid[world.agent.y][world.agent.x + 1].has_wumpus)  # Check right
+        (world.agent.x > 0 and world.grid[world.agent.x - 1][world.agent.y].has_wumpus) or  # Check above
+        (world.agent.x < WORLD_SIZE - 1 and world.grid[world.agent.x + 1][world.agent.y].has_wumpus) or  # Check below
+        (world.agent.y > 0 and world.grid[world.agent.x][world.agent.y - 1].has_wumpus) or  # Check left
+        (world.agent.y < WORLD_SIZE - 1 and world.grid[world.agent.x][world.agent.y + 1].has_wumpus)  # Check right
     )
+
 
     in_gold_cell = world.grid[world.agent.x][world.agent.y].has_gold
 
@@ -297,18 +346,12 @@ while running:
     pygame.draw.rect(window, CREAM, (420, 230, 210, 70), border_radius=20)
 
     # Check if the agent has found the gold
-    if world.grid[world.agent.x][world.agent.y].has_gold:
-        print("You've found the gold! You win!")
-        state_text = "You've found the gold!\n You win!"
-        state_lines = state_text.splitlines()
-        y_coords = 250
-        for line in state_lines:
-            state_surface = instruction_font.render(line, True, GREEN)
-            window.blit(state_surface, (440, y_coords))
-            y_coords += 20
+
 
     # Check if the agent has fallen into a pit
-    elif world.grid[world.agent.x][world.agent.y].has_pit:
+    if world.grid[world.agent.x][world.agent.y].has_pit:
+        score += DEATH_PENALTY
+        game_over = True
         print("You've fallen into a pit! Game over.")
         state_text = "You've fallen into a pit!\n Game over."
         state_lines = state_text.splitlines()
@@ -320,6 +363,8 @@ while running:
 
     # Check if the agent has been eaten by the wumpus
     elif world.grid[world.agent.x][world.agent.y].has_wumpus:
+        score += DEATH_PENALTY
+        game_over = True
         print("You've been eaten by the wumpus! Game over.")
         state_text = "You've been eaten by\nthe wumpus! Game over."
         state_lines = state_text.splitlines()
@@ -329,7 +374,28 @@ while running:
             window.blit(state_surface, (440, y_coords))
             y_coords += 20
 
-    else:
+    elif wumpus_shot == True:
+        score += GOLD_REWARD
+        game_over = True
+        print("You've shot the wumpus! You win!")
+        state_text = "You've shot the wumpus!\n You win!"
+        state_lines = state_text.splitlines()
+        y_coords = 250
+        for line in state_lines:
+            state_surface = instruction_font.render(line, True, GREEN)
+            window.blit(state_surface, (440, y_coords))
+            y_coords += 20
+    elif gold_retrieved == True:
+        state_text = "You've found the gold!\n You win!"
+        state_lines = state_text.splitlines()
+        y_coords = 250
+        for line in state_lines:
+            state_surface = instruction_font.render(line, True, GREEN)
+            window.blit(state_surface, (440, y_coords))
+            y_coords += 20
+
+
+    '''else:
         print("empty room")
         state_text = "          Empty room"
         # Render the state text
@@ -338,17 +404,29 @@ while running:
         for line in state_lines:
             state_surface = instruction_font.render(line, True, BROWN)
             window.blit(state_surface, (440, y_coords))
-            y_coords += 20  # Adjust this value as needed for spacing
-
+            y_coords += 20'''  # Adjust this value as needed for spacing
+    if shooting_instructions_displayed == True:
+        state_text = "Choose direction to shoot\n using arrow keys."
+        state_lines = state_text.splitlines()
+        y_coords = 250
+        for line in state_lines:
+            state_surface = instruction_font.render(line, True, BROWN)
+            window.blit(state_surface, (440, y_coords))
+            y_coords += 20
+        world.agent.shoot()
 
     # Display the state text
-    percept_text = f"Stench: {adjacent_wumpus}\nBreeze: {adjacent_pit}\nGlitter: {in_gold_cell}\nBump: {world.agent.bump}\nScream: None"
+    percept_text = f"Stench: {adjacent_wumpus}\nBreeze: {adjacent_pit}\nGlitter: {in_gold_cell}\nBump: {world.agent.bump}\nScream: {wumpus_shot}"
     percept_lines = percept_text.splitlines()
     y_offset = 50
     for line in percept_lines:
         percept_surface = font.render(line, True, BROWN)
         window.blit(percept_surface, (440, y_offset))
         y_offset += 20  # Adjust this value as needed for spacing
+
+    score_surface = instruction_font.render(f"Final Score: {score}", True, BROWN)
+    window.blit(score_surface, (440, 190))
+
 
 
 
