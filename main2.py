@@ -81,166 +81,6 @@ font = pygame.font.Font(None, 24)
 clock = pygame.time.Clock()
 FPS = 10
 
-# Define classes
-'''class Agent:
-    def __init__(self):
-        self.x = 3
-        self.y = 0
-        self.orientation = "RIGHT"
-        self.has_gold = False
-        self.has_arrow = True
-        self.bump = False
-        self.has_pit = False
-        self.has_wumpus = False
-
-    def move(self, dx, dy):
-        global score  # Add global score variable
-
-        new_x = self.x + dx
-        new_y = self.y + dy
-
-        # Check if the new position has a pit or wumpus
-        if 0 <= new_x < WORLD_SIZE and 0 <= new_y < WORLD_SIZE:
-            if world.grid[new_x][new_y].has_pit or world.grid[new_x][new_y].has_wumpus:
-                score += DEATH_PENALTY  # Increment score by death penalty
-                if world.grid[new_x][new_y].has_pit:
-                    print("You've fallen into a pit! Game over.")
-                    self.has_pit = True
-                elif world.grid[new_x][new_y].has_wumpus:
-                    print("You've been eaten by the wumpus! Game over.")
-                    self.has_wumpus = True
-        else:
-            self.bump = True  # Reset bump to False if move is successful
-
-        # Update agent's position
-        if 0 <= new_x < WORLD_SIZE and 0 <= new_y < WORLD_SIZE:
-            self.x = new_x
-            self.y = new_y
-            score += ACTION_PENALTY
-
-
-    def grab(self):
-        global gold_retrieved, score
-        self.has_gold = True
-
-        if world.grid[world.agent.x][world.agent.y].has_gold:
-            world.grid[self.x][self.y].has_gold = False
-            score += GOLD_REWARD
-            gold_retrieved = True
-            print("You've found the gold! You win!")
-
-
-    def shoot(self):
-        global no_arrow_state, shooting_instructions_displayed, wumpus_shot, score, shot_missed
-
-        if self.has_arrow:
-            if pygame.key.get_pressed()[pygame.K_UP]:
-                for x in range(self.x - 1, -1, -1):
-                    if world.grid[x][self.y].has_wumpus:
-                        world.grid[x][self.y].has_wumpus = False
-                        print("You shot the Wumpus!")
-                        self.has_arrow = False
-                        shooting_instructions_displayed = False
-                        wumpus_shot = True
-                        score += ARROW_PENALTY
-                        score += GOLD_REWARD
-                        # Blit the shoot image onto the window
-                        agent_rect = pygame.Rect(self.y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                        window.blit(shoot_up, agent_rect)
-                        pygame.display.flip()  # Update the display
-                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
-                        break
-                    else:
-                        score += ARROW_PENALTY
-                        shot_missed = True
-                        self.has_arrow = False
-                        shooting_instructions_displayed = False
-                        agent_rect = pygame.Rect(self.y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                        window.blit(shoot_up, agent_rect)
-                        pygame.display.flip()  # Update the display
-                        pygame.time.delay(500)
-
-            elif pygame.key.get_pressed()[pygame.K_DOWN]:
-                for x in range(self.x + 1, WORLD_SIZE):
-                    if world.grid[x][self.y].has_wumpus:
-                        world.grid[x][self.y].has_wumpus = False
-                        print("You shot the Wumpus!")
-                        self.has_arrow = False
-                        shooting_instructions_displayed = False
-                        wumpus_shot = True
-                        score = ARROW_PENALTY
-                        score += GOLD_REWARD
-                        # Blit the shoot image onto the window
-                        agent_rect = pygame.Rect(self.y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                        window.blit(shoot_down, agent_rect)
-                        pygame.display.flip()  # Update the display
-                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
-                        break
-                    else:
-                        score += ARROW_PENALTY
-                        shot_missed = True
-                        self.has_arrow = False
-                        shooting_instructions_displayed = False
-                        agent_rect = pygame.Rect(self.y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                        window.blit(shoot_down, agent_rect)
-                        pygame.display.flip()  # Update the display
-                        pygame.time.delay(500)
-            elif pygame.key.get_pressed()[pygame.K_LEFT]:
-                for y in range(self.y - 1, -1, -1):
-                    if world.grid[self.x][y].has_wumpus:
-                        world.grid[self.x][y].has_wumpus = False
-                        print("You shot the Wumpus!")
-                        self.has_arrow = False
-                        shooting_instructions_displayed = False
-                        wumpus_shot = True
-                        score += ARROW_PENALTY
-                        score += GOLD_REWARD
-                        # Blit the shoot image onto the window
-                        agent_rect = pygame.Rect(y * CELL_SIZE, self.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                        window.blit(shoot_left, agent_rect)
-                        pygame.display.flip()  # Update the display
-                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
-                        break
-                    else:
-                        score += ARROW_PENALTY
-                        shot_missed = True
-                        self.has_arrow = False
-                        shooting_instructions_displayed = False
-                        agent_rect = pygame.Rect(y * CELL_SIZE, self.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                        window.blit(shoot_left, agent_rect)
-                        pygame.display.flip()  # Update the display
-                        pygame.time.delay(500)
-            elif pygame.key.get_pressed()[pygame.K_RIGHT]:
-                for y in range(self.y + 1, WORLD_SIZE):
-                    if world.grid[self.x][y].has_wumpus:
-                        world.grid[self.x][y].has_wumpus = False
-                        print("You shot the Wumpus!")
-                        self.has_arrow = False
-                        shooting_instructions_displayed = False
-                        wumpus_shot = True
-                        score += ARROW_PENALTY
-                        score += GOLD_REWARD
-                        # Blit the shoot image onto the window
-                        agent_rect = pygame.Rect(y * CELL_SIZE, self.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                        window.blit(shoot_right, agent_rect)
-                        pygame.display.flip()  # Update the display
-                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
-                        break
-                    else:
-                        score += ARROW_PENALTY
-                        shot_missed = True
-                        self.has_arrow = False
-                        shooting_instructions_displayed = False
-                        agent_rect = pygame.Rect(y * CELL_SIZE, self.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                        window.blit(shoot_right, agent_rect)
-                        pygame.display.flip()  # Update the display
-                        pygame.time.delay(500)
-
-        else:
-            no_arrow_state = True
-            print("No arrows left.")'''
-
-
 class Agent:
     def __init__(self):
         # Initialize agent properties
@@ -298,7 +138,9 @@ class Agent:
 
                     for cell in p:
                         adjacent_x, adjacent_y = cell
+                        print(f"Checking cell ({adjacent_x}, {adjacent_y}) of ({pits[0]}, {pits[1]}) for  breeze.")
                         pp = world.detect_breeze(adjacent_x, adjacent_y)
+                        print("pp:", pp)
                         if pp and not (world.grid[adjacent_x][adjacent_y].has_pit or
                                         world.grid[adjacent_x][adjacent_y].has_wumpus):
                             is_adj.append((adjacent_x, adjacent_y))
@@ -307,6 +149,9 @@ class Agent:
                         elif pp == False and not (world.grid[adjacent_x][adjacent_y].has_pit or
                                                   world.grid[adjacent_x][adjacent_y].has_wumpus):
                             self.safe_cells.add((adjacent_x, adjacent_y))
+                            self.safe_cells.add((pits[0], pits[1]))
+                            print("Adjacent cell with no breeze detected and no pit or wumpus:", (adjacent_x, adjacent_y))
+
                     if self.x == 3 and self.y == 3 or self.x == 0 and self.y == 0 or self.x == 0 and self.y == 3:
                         if len(is_adj) >= 1 and (pits[0], pits[1]) in marked_pits and (pits[0], pits[1]) not in self.safe_cells:
                             print("Adding pit to remove list:", pits)
@@ -353,7 +198,6 @@ class Agent:
                         continue
             else:
                 wumpus_to_remove = []
-
                 for wumpus in marked_wumpus:
                     is_adj = []
                     print(wumpus)
@@ -363,6 +207,7 @@ class Agent:
                         print("Cell:", cell)
                         adjacent_x, adjacent_y = cell
                         print("Adjacent cell:", (adjacent_x, adjacent_y))
+                        print(f"Checking cell ({adjacent_x}, {adjacent_y}) of ({wumpus[0]}, {wumpus[1]})for stench.")
                         ww = world.detect_stench(adjacent_x, adjacent_y)
                         print("ww:", ww)
                         if ww and not (world.grid[adjacent_x][adjacent_y].has_pit or world.grid[adjacent_x][adjacent_y].has_wumpus):
@@ -372,8 +217,8 @@ class Agent:
 
                         elif ww == False and not (world.grid[adjacent_x][adjacent_y].has_pit or world.grid[adjacent_x][adjacent_y].has_wumpus):
                             self.safe_cells.add((adjacent_x, adjacent_y))
+                            self.safe_cells.add((wumpus[0], wumpus[1]))
                         # Debugging statement to show which cells are being checked for stench
-                        print(f"Checking cell ({adjacent_x}, {adjacent_y}) for stench.")
                     # Debugging statement to show adjacent cells without pit or wumpus
                     print("Adjacent cells without pit or wumpus:", is_adj)
 
@@ -427,6 +272,7 @@ class Agent:
             if safe_unvisited_cells:
                 found_adjacent = False
                 for temp_x, temp_y in safe_unvisited_cells:
+                    print("Temp: ", (temp_x, temp_y))
                     adj = self.pass_adjacent(temp_x, temp_y)
                     if adj:
                         # If there's at least one adjacent cell, set the new position and exit the loop
@@ -460,17 +306,21 @@ class Agent:
         self.x, self.y = new_x, new_y
         score += ACTION_PENALTY
         self.visited_cells.add((self.x, self.y))
+        adj_adj = self.get_adjacent_cells()
+        for cell in adj_adj:
+            x, y = cell
+            if (x, y) in self.safe_cells and not (world.grid[x][y].has_pit or world.grid[x][y].has_wumpus):
+                continue
+            elif not self.safe_cells and not (world.grid[x][y].has_pit or world.grid[x][y].has_wumpus):
+                self.safe_cells.add((x, y))
         marked_pits = []
         marked_wumpus = []
         is_adj = []
         sleep(0.1)
 
-        if world.grid[self.x][self.y].has_gold:
-            score += GOLD_REWARD
-            gold_retrieved = True
-            world.grid[self.x][self.y].has_gold = False
+        if world.grid[self.x][self.y].has_gold:  #if glitters is true
             self.has_gold = True
-
+            self.grab()
         elif world.grid[self.x][self.y].has_pit or world.grid[self.x][self.y].has_wumpus:
             score += DEATH_PENALTY
             if world.grid[self.x][self.y].has_pit:
@@ -480,16 +330,24 @@ class Agent:
                 print("You've been eaten by the wumpus! Game over.")
                 self.has_wumpus = True
 
+
+    def grab(self):
+        global score, gold_retrieved
+        gold_retrieved = True
+        world.grid[self.x][self.y].has_gold = False
+        score += GOLD_REWARD
+        print("You've found the gold! You win!")
+
     def wumpit_get_adj(self, x, y):
 
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         adjacent_cells = []
 
         for dx, dy in directions:
-            new_x, new_y = x + dx, y + dy
+            temp_x, temp_y = x + dx, y + dy
 
-            if 0 <= new_x < WORLD_SIZE and 0 <= new_y < WORLD_SIZE:
-                    adjacent_cells.append((new_x, new_y))
+            if 0 <= temp_x < WORLD_SIZE and 0 <= temp_y < WORLD_SIZE:
+                    adjacent_cells.append((temp_x, temp_y))
         print("wumpit_get_adj:", adjacent_cells)
         return adjacent_cells
 
