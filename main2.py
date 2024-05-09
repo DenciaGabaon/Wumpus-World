@@ -1,4 +1,12 @@
-'''BACKTRACK USING SAFE CELLS'''
+'''AI PLAYER'''
+
+
+"""
+Copyright © 2024 Gabaon, Deniece Winslhet A.
+
+This code is protected by copyright law. Unauthorized reproduction, distribution,
+or modification is prohibited.
+"""
 
 from time import sleep
 import pygame
@@ -40,28 +48,46 @@ pygame.init()
 # Set up the display
 WINDOW_SIZE = (WORLD_SIZE * CELL_SIZE, WORLD_SIZE * CELL_SIZE)
 window = pygame.display.set_mode((650, 400))  # Adjust the size as needed
-pygame.display.set_caption("Wumpus World")
+pygame.display.set_caption("Wumpus World AI")
 
 # Load images
-agent_img = pygame.image.load("player.png")
+agent_img = pygame.image.load("assets/img/player.png")
 agent_img = pygame.transform.scale(agent_img, (70, CELL_SIZE))
-wumpus_img = pygame.image.load("wumpus.png")
+wumpus_img = pygame.image.load("assets/img/wumpus.png")
 wumpus_img = pygame.transform.scale(wumpus_img, (CELL_SIZE, CELL_SIZE))
-pit_img = pygame.image.load("pit.png")
+pit_img = pygame.image.load("assets/img/pit.png")
 pit_img = pygame.transform.scale(pit_img, (CELL_SIZE, CELL_SIZE))
-gold_img = pygame.image.load("gold.png")
+gold_img = pygame.image.load("assets/img/gold.png")
 gold_img = pygame.transform.scale(gold_img, (CELL_SIZE, CELL_SIZE))
-bg_img = pygame.image.load("bg.jpg")
+bg_img = pygame.image.load("assets/img/bg.jpg")
 bg_img = pygame.transform.scale(bg_img, (400, 400))
 
-shoot_right = pygame.image.load("shoot - right.jpg")
+shoot_right = pygame.image.load("assets/img/shoot - right.jpg")
 shoot_right = pygame.transform.scale(shoot_right, (70, 70))
-shoot_left = pygame.image.load("shoot - left.jpg")
+shoot_left = pygame.image.load("assets/img/shoot - left.jpg")
 shoot_left = pygame.transform.scale(shoot_left, (70, 70))
-shoot_up = pygame.image.load("shoot - up.jpg")
+shoot_up = pygame.image.load("assets/img/shoot - up.jpg")
 shoot_up = pygame.transform.scale(shoot_up, (70, 70))
-shoot_down = pygame.image.load("shoot - down.jpg")
+shoot_down = pygame.image.load("assets/img/shoot - down.jpg")
 shoot_down = pygame.transform.scale(shoot_down, (70, 70))
+top_wall = pygame.image.load("assets/img/top_wall.png")
+top_wall = pygame.transform.scale(top_wall, (CELL_SIZE, CELL_SIZE))
+
+
+pygame.mixer.init()
+breeze_sound = pygame.mixer.Sound("assets/sounds/wind2.wav")  # Replace "breeze_sound.wav" with your actual breeze sound file
+stench_sound = pygame.mixer.Sound("assets/sounds/flies.wav")  # Replace "stench_sound.wav" with your actual stench sound file
+scream_sound = pygame.mixer.Sound("assets/sounds/scream.mp3")  # Replace "scream_sound.wav" with your actual scream sound file
+glitter_sound = pygame.mixer.Sound("assets/sounds/chimes.mp3")  # Replace "gold_sound.wav" with your actual gold sound file
+victory_sound = pygame.mixer.Sound("assets/sounds/victory.wav")  # Replace "victory_sound.wav" with your actual victory sound file
+lose_sound = pygame.mixer.Sound("assets/sounds/lose.wav")  # Replace "lose_sound.wav" with your actual lose sound file
+gameloop = pygame.mixer.Sound("assets/sounds/gameloop.mp3")  # Replace "breeze_sound.wav" with your actual breeze sound file
+
+channel1 = gameloop.play(-1)  # Play the gameloop sound on loop
+channel1.set_volume(0.5)  # Set the volume to 10%
+
+
+
 
 instruction_font = pygame.font.SysFont(None, 22)
 state = instruction_font.render("empty room", True, BROWN)
@@ -80,6 +106,25 @@ new_x, new_y = 0, 0
 font = pygame.font.Font(None, 24)
 clock = pygame.time.Clock()
 FPS = 10
+
+# Initialize grid covers
+grid_covers = [[True for _ in range(WORLD_SIZE)] for _ in range(WORLD_SIZE)]
+grid_covers[3][0] = False  # Remove cover for grid (3, 0)
+
+
+# Display Grid Covers
+def draw_grid_covers():
+    for row in range(WORLD_SIZE):
+        for col in range(WORLD_SIZE):
+            if grid_covers[row][col]:
+                rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                window.blit(top_wall, rect)
+
+# Remove Grid Covers
+def uncover_grid(x, y):
+    if 0 <= x < WORLD_SIZE and 0 <= y < WORLD_SIZE:
+        grid_covers[x][y] = False
+
 
 class Agent:
     def __init__(self):
@@ -241,6 +286,8 @@ class Agent:
 
                 # Debugging statement to show which wumpus are being removed from marked_wumpus
                 print("Wumpus to remove:", wumpus_to_remove)
+                shoot = random.choice(wumpus_to_remove)
+                self.shoot_at(shoot[0], shoot[1])
                 for wumpus in wumpus_to_remove:
                     marked_wumpus.remove(wumpus)
 
@@ -304,6 +351,7 @@ class Agent:
 
         # Update agent's position and mark the cell as visited
         self.x, self.y = new_x, new_y
+        uncover_grid(world.agent.x, world.agent.y)
         score += ACTION_PENALTY
         self.visited_cells.add((self.x, self.y))
         adj_adj = self.get_adjacent_cells()
@@ -320,6 +368,7 @@ class Agent:
 
         if world.grid[self.x][self.y].has_gold:  #if glitters is true
             self.has_gold = True
+            sleep(0.1)
             self.grab()
         elif world.grid[self.x][self.y].has_pit or world.grid[self.x][self.y].has_wumpus:
             score += DEATH_PENALTY
@@ -399,32 +448,116 @@ class Agent:
             print(f"Perceived stench at ({x}, {y}). Marking cell as wumpus.")
         print(wumpus_adj)
 
-    def shoot_at_stench(self):
-        # Get the coordinates of adjacent cells
-        adjacent_cells = [(self.x - 1, self.y), (self.x + 1, self.y), (self.x, self.y - 1), (self.x, self.y + 1)]
 
-        # Check if any of the adjacent cells are safe
-        safe_adjacent_cells = [cell for cell in adjacent_cells if cell in self.safe_cells]
+    def shoot_at(self, target_x, target_y):
+        global no_arrow_state, shooting_instructions_displayed, wumpus_shot, score, shot_missed
 
-        if safe_adjacent_cells:
-            # If there are safe adjacent cells, randomly choose one to shoot
-            target_cell = random.choice(safe_adjacent_cells)
-            target_x, target_y = target_cell
-            dx = target_x - self.x
-            dy = target_y - self.y
+        if self.has_arrow:
+            if target_x < self.x:
+                for x in range(self.x - 1, -1, -1):
+                    if world.grid[x][self.y].has_wumpus:
+                        world.grid[x][self.y].has_wumpus = False
+                        print("You shot the Wumpus!")
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        wumpus_shot = True
+                        score += ARROW_PENALTY
+                        score += GOLD_REWARD
+                        # Blit the shoot image onto the window
+                        agent_rect = pygame.Rect(self.y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_up, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
+                        break
+                    else:
+                        score += ARROW_PENALTY
+                        shot_missed = True
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        agent_rect = pygame.Rect(self.y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_up, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)
 
-            # Update agent's orientation
-            if dx == 1:
-                self.orientation = "DOWN"
-            elif dx == -1:
-                self.orientation = "UP"
-            elif dy == 1:
-                self.orientation = "RIGHT"
-            elif dy == -1:
-                self.orientation = "LEFT"
+            elif target_x > self.x:
+                for x in range(self.x + 1, WORLD_SIZE):
+                    if world.grid[x][self.y].has_wumpus:
+                        world.grid[x][self.y].has_wumpus = False
+                        print("You shot the Wumpus!")
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        wumpus_shot = True
+                        score = ARROW_PENALTY
+                        score += GOLD_REWARD
+                        # Blit the shoot image onto the window
+                        agent_rect = pygame.Rect(self.y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_down, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
+                        break
+                    else:
+                        score += ARROW_PENALTY
+                        shot_missed = True
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        agent_rect = pygame.Rect(self.y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_down, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)
+            elif target_y < self.y:
+                for y in range(self.y - 1, -1, -1):
+                    if world.grid[self.x][y].has_wumpus:
+                        world.grid[self.x][y].has_wumpus = False
+                        print("You shot the Wumpus!")
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        wumpus_shot = True
+                        score += ARROW_PENALTY
+                        score += GOLD_REWARD
+                        # Blit the shoot image onto the window
+                        agent_rect = pygame.Rect(y * CELL_SIZE, self.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_left, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
+                        break
+                    else:
+                        score += ARROW_PENALTY
+                        shot_missed = True
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        agent_rect = pygame.Rect(y * CELL_SIZE, self.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_left, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)
+            elif target_y > self.y:
+                for y in range(self.y + 1, WORLD_SIZE):
+                    if world.grid[self.x][y].has_wumpus:
+                        world.grid[self.x][y].has_wumpus = False
+                        print("You shot the Wumpus!")
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        wumpus_shot = True
+                        score += ARROW_PENALTY
+                        score += GOLD_REWARD
+                        # Blit the shoot image onto the window
+                        agent_rect = pygame.Rect(y * CELL_SIZE, self.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_right, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)  # Delay for 500 milliseconds (0.5 seconds)
+                        break
+                    else:
+                        score += ARROW_PENALTY
+                        shot_missed = True
+                        self.has_arrow = False
+                        shooting_instructions_displayed = False
+                        agent_rect = pygame.Rect(y * CELL_SIZE, self.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                        window.blit(shoot_right, agent_rect)
+                        pygame.display.flip()  # Update the display
+                        pygame.time.delay(500)
 
-            # Shoot in the direction of the target cell
-            self.shoot()
+        else:
+            no_arrow_state = True
+            print("No arrows left.")
 
     def perform_action(self):
         '''if wumpus_shot or gold_retrieved == False:  # Check if the game is not over
@@ -579,6 +712,8 @@ while running:
                 shot_missed = False
                 new_x, new_y = 0, 0
                 world.agent = Agent()  # Reset the agent
+                grid_covers = [[True for _ in range(WORLD_SIZE)] for _ in range(WORLD_SIZE)]
+                grid_covers[3][0] = False  # Remove cover for grid (3, 0)
                 sleep(0.1)
 
     # Fill the backgrounda
@@ -593,6 +728,8 @@ while running:
 
     # Draw the Wumpus World
     world.draw()
+    draw_grid_covers()
+
 
     # Draw agent
     agent_rect = pygame.Rect(world.agent.y * CELL_SIZE, world.agent.x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
@@ -625,6 +762,22 @@ while running:
     pygame.draw.rect(window, CREAM, (420, 170, 210, 55), border_radius=20)
     pygame.draw.rect(window, CREAM, (420, 230, 210, 70), border_radius=20)
 
+    if in_gold_cell:
+        glitter_sound.play()
+    else:
+        glitter_sound.stop()
+
+    if adjacent_pit:
+        breeze_sound.play()
+    else:
+        breeze_sound.stop()
+
+    if adjacent_wumpus:
+        stench_sound.play()
+    else:
+        stench_sound.stop()
+
+
     # Check if the agent has found the gold
     # After the game loop
     # Determine the color based on game outcome
@@ -636,13 +789,18 @@ while running:
     # Display the appropriate state text based on game outcome
     if world.grid[world.agent.x][world.agent.y].has_pit:
         state_text = "You've fallen into a pit!\n Game over."
+        lose_sound.play()
     elif world.grid[world.agent.x][world.agent.y].has_wumpus:
         state_text = "You've been eaten by\nthe wumpus! Game over."
+        lose_sound.play()
     elif wumpus_shot:
         state_text = "You've shot the wumpus!\n You win!"
+        scream_sound.play()
+        victory_sound.play()
     elif world.grid[world.agent.x][world.agent.y].has_gold or gold_retrieved:
         '''will change the condition to gold_retrieved if all done'''
         state_text = "You've found the gold!\n You win!"
+        victory_sound.play()
     elif shooting_instructions_displayed:
         state_text = "Choose direction to shoot\n using arrow keys."
         world.agent.shoot()
@@ -673,7 +831,8 @@ while running:
     score_surface = instruction_font.render(f"Final Score: {score}", True, BROWN)
     window.blit(score_surface, (440, 190))
 
-    if world.agent.has_gold == False and world.agent.has_pit == False and world.agent.has_wumpus == False:
+    if world.agent.has_gold == False and world.agent.has_pit == False and world.agent.has_wumpus == False \
+            and wumpus_shot == False:
         '''shooting_instructions_displayed == False and gold_retrieved == False and wumpus_shot == False \
          and'''
         world.agent.perform_action()
